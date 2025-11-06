@@ -44,7 +44,7 @@
 				position: fixed;
 				bottom: 5vh;
 				right: 5vh;
-				width: 22.5%;
+				width: 15%;
 				display: flex;
 				justify-content: center;
 				align-items: center;
@@ -64,7 +64,7 @@
 				display: flex;
 				justify-content: center;
 				align-items: center;
-				font-size: 5vw;
+				font-size: 3vw;
 			}
 
 			.digit {
@@ -173,174 +173,177 @@
 
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
-		<script>
-			const pdfjsLib = window['pdfjs-dist/build/pdf'];
-			pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-			const canvas = document.getElementById('pdf-canvas');
-			const ctx = canvas.getContext('2d');
-			const pdfContainer = document.getElementById('pdf-container');
-			const fileDrop = document.getElementById('file-drop');
-			const fileInput = document.getElementById('file-input');
-			const pickBtn = document.getElementById('pick-btn');
-			let pdfDoc = null;
-			let pageNum = 1;
-			async function renderPage(num) {
-				const page = await pdfDoc.getPage(num);
-				const unscaledViewport = page.getViewport({
-					scale: 1
-				});
-				const scale = Math.min(window.innerWidth / unscaledViewport.width, window.innerHeight / unscaledViewport.height);
-				const viewport = page.getViewport({
-					scale
-				});
-				canvas.width = viewport.width;
-				canvas.height = viewport.height;
-				const renderContext = {
-					canvasContext: ctx,
-					viewport: viewport
-				};
-				await page.render(renderContext).promise;
-			}
+		<script>const pdfjsLib = window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    const canvas = document.getElementById('pdf-canvas');
+    const ctx = canvas.getContext('2d');
+    const pdfContainer = document.getElementById('pdf-container');
+    const fileDrop = document.getElementById('file-drop');
+    const fileInput = document.getElementById('file-input');
+    const pickBtn = document.getElementById('pick-btn');
+    let pdfDoc = null;
+    let pageNum = 1;
 
-			function loadPDF(arrayBuffer) {
-				const loadingTask = pdfjsLib.getDocument({
-					data: arrayBuffer
-				});
-				loadingTask.promise.then(pdf => {
-					pdfDoc = pdf;
-					pageNum = 1;
-					fileDrop.style.display = 'none';
-					pdfContainer.style.display = 'flex';
-					renderPage(pageNum);
-				});
-			}
-			fileDrop.addEventListener('dragover', (e) => {
-				e.preventDefault();
-				fileDrop.classList.add('dragover');
-			});
-			fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
-			fileDrop.addEventListener('drop', (e) => {
-				e.preventDefault();
-				fileDrop.classList.remove('dragover');
-				const file = e.dataTransfer.files[0];
-				if(file && file.type === "application/pdf") {
-					const reader = new FileReader();
-					reader.onload = () => loadPDF(reader.result);
-					reader.readAsArrayBuffer(file);
-				}
-			});
-			pickBtn.addEventListener('click', () => fileInput.click());
-			fileInput.addEventListener('change', (e) => {
-				const file = e.target.files[0];
-				if(file && file.type === "application/pdf") {
-					const reader = new FileReader();
-					reader.onload = () => loadPDF(reader.result);
-					reader.readAsArrayBuffer(file);
-				}
-			});
-			window.addEventListener('resize', () => {
-				if(pdfDoc) renderPage(pageNum);
-			});
-			document.addEventListener('keydown', (e) => {
-				if(!pdfDoc) return;
-				if(e.key.toLowerCase() === 'l' && pageNum < pdfDoc.numPages) {
-					pageNum++;
-					renderPage(pageNum);
-				}
-				if(e.key.toLowerCase() === 'j' && pageNum > 1) {
-					pageNum--;
-					renderPage(pageNum);
-				}
-			});
-			let totalSeconds = 300;
-			let interval = null;
-			let running = false;
-			const timerContainer = document.getElementById('timer-container');
-			const timerDisplay = document.getElementById('timer');
-			let flashingRed = false;
+    async function renderPage(num) {
+      const page = await pdfDoc.getPage(num);
+      const unscaledViewport = page.getViewport({ scale: 1 });
+      const scale = Math.min(window.innerWidth / unscaledViewport.width, window.innerHeight / unscaledViewport.height);
+      const viewport = page.getViewport({ scale });
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const renderContext = { canvasContext: ctx, viewport: viewport };
+      await page.render(renderContext).promise;
+    }
 
-			function renderTime() {
-				timerDisplay.innerHTML = '';
-				const negative = totalSeconds < 0;
-				const absSec = Math.abs(totalSeconds);
-				const min = Math.floor(absSec / 60);
-				const sec = absSec % 60;
-				const str = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-				// Stałe 7 pól: YXX:XXZ
-				const chars = [
-					negative ? '-' : ' ', // Y
-					str[0], // X
-					str[1], // X
-					str[2], // :
-					str[3], // X
-					str[4], // X
-					' ' // Z (symetria)
-				];
-				for(const char of chars) {
-					const d = document.createElement('div');
-					d.classList.add('digit');
-					d.textContent = char;
-					timerDisplay.appendChild(d);
-				}
-			}
+    function loadPDF(arrayBuffer) {
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      loadingTask.promise.then(pdf => {
+        pdfDoc = pdf;
+        pageNum = 1;
+        fileDrop.style.display = 'none';
+        pdfContainer.style.display = 'flex';
+        renderPage(pageNum);
+      });
+    }
 
-			function startTimer() {
-				if(running) return;
-				running = true;
-				interval = setInterval(() => {
-					totalSeconds--;
-					renderTime();
-					if([60, 120, 180, 240].includes(totalSeconds)) flashTextWhite();
-					if(totalSeconds === 0 && !flashingRed) {
-						flashingRed = true;
-						timerDisplay.classList.add('flashing-red');
-					}
-				}, 1000);
-			}
+    fileDrop.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      fileDrop.classList.add('dragover');
+    });
+    fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
+    fileDrop.addEventListener('drop', (e) => {
+      e.preventDefault();
+      fileDrop.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type === "application/pdf") {
+        const reader = new FileReader();
+        reader.onload = () => loadPDF(reader.result);
+        reader.readAsArrayBuffer(file);
+      }
+    });
+    pickBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file && file.type === "application/pdf") {
+        const reader = new FileReader();
+        reader.onload = () => loadPDF(reader.result);
+        reader.readAsArrayBuffer(file);
+      }
+    });
+    window.addEventListener('resize', () => {
+      if (pdfDoc) renderPage(pageNum);
+    });
 
-			function pauseTimer() {
-				clearInterval(interval);
-				running = false;
-			}
+    let totalSeconds = 300;
+    let interval = null;
+    let running = false;
+    const timerContainer = document.getElementById('timer-container');
+    const timerDisplay = document.getElementById('timer');
+    let flashingRed = false;
 
-			function resetTimer() {
-				pauseTimer();
-				totalSeconds = 300;
-				flashingRed = false;
-				timerDisplay.classList.remove('flashing-red');
-				renderTime();
-			}
+    function renderTime() {
+      timerDisplay.innerHTML = '';
+      const negative = totalSeconds < 0;
+      const absSec = Math.abs(totalSeconds);
+      const min = Math.floor(absSec / 60);
+      const sec = absSec % 60;
+      const str = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+      const chars = [
+        negative ? '-' : ' ', str[0], str[1], str[2], str[3], str[4], ' '
+      ];
+      for (const char of chars) {
+        const d = document.createElement('div');
+        d.classList.add('digit');
+        d.textContent = char;
+        timerDisplay.appendChild(d);
+      }
+    }
 
-			function flashTextWhite() {
-				timerDisplay.classList.add('flash-white');
-				setTimeout(() => timerDisplay.classList.remove('flash-white'), 300);
-			}
-			document.addEventListener('keydown', (e) => {
-			  switch (e.key.toLowerCase()) {
-					case ' ':
-						startTimer();
-						break;
-					case 'p':
-						pauseTimer();
-						break;
-					case 'r':
-						resetTimer();
-						break;
-					case 'b':
-						totalSeconds++;
-						renderTime();
-						break;
-					case 'o':
-						totalSeconds--;
-						renderTime();
-						break;
-					case 'h':
-						timerContainer.classList.toggle('hidden');
-						break;
-				}
-			});
-			renderTime();
-		</script>
+    function startTimer() {
+      if (running) return;
+      running = true;
+      interval = setInterval(() => {
+        totalSeconds--;
+        renderTime();
+        if ([60, 120, 180, 240].includes(totalSeconds)) flashTextWhite();
+        if (totalSeconds === 0 && !flashingRed) {
+          flashingRed = true;
+          timerDisplay.classList.add('flashing-red');
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      clearInterval(interval);
+      running = false;
+    }
+
+    function resetTimer() {
+      pauseTimer();
+      totalSeconds = 300;
+      flashingRed = false;
+      timerDisplay.classList.remove('flashing-red');
+      renderTime();
+    }
+
+    function flashTextWhite() {
+      timerDisplay.classList.add('flash-white');
+      setTimeout(() => timerDisplay.classList.remove('flash-white'), 300);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (!pdfDoc) return;
+
+      switch (e.key.toLowerCase()) {
+        case 'arrowright':
+        case 'l':
+          if (pageNum < pdfDoc.numPages) {
+            pageNum++;
+            renderPage(pageNum);
+          }
+          break;
+        case 'arrowleft':
+        case 'j':
+          if (pageNum > 1) {
+            pageNum--;
+            renderPage(pageNum);
+          }
+          break;
+
+        case 'arrowup':
+          totalSeconds++;
+          renderTime();
+          break;
+        case 'arrowdown':
+          totalSeconds--;
+          renderTime();
+          break;
+
+        case ' ':
+          startTimer();
+          break;
+        case 'p':
+          pauseTimer();
+          break;
+        case 'r':
+          resetTimer();
+          break;
+        case 'b':
+          totalSeconds++;
+          renderTime();
+          break;
+        case 'o':
+          totalSeconds--;
+          renderTime();
+          break;
+        case 'h':
+          timerContainer.classList.toggle('hidden');
+          break;
+      }
+    });
+
+    renderTime();
+    </script>
 	</body>
 
 </html>

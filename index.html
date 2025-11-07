@@ -167,7 +167,7 @@
 			<canvas id="pdf-canvas"></canvas>
 		</div>
 
-		<div id="timer-container">
+		<div id="timer-container" class="hidden">
 			<div id="timer"></div>
 		</div>
 
@@ -296,6 +296,12 @@
 
       switch (e.key.toLowerCase()) {
         case 'arrowright':
+          if (pageNum < pdfDoc.numPages) {
+            pageNum++;
+            renderPage(pageNum);
+          }
+          resetTimer();
+          break;
         case 'l':
           if (pageNum < pdfDoc.numPages) {
             pageNum++;
@@ -303,13 +309,18 @@
           }
           break;
         case 'arrowleft':
+          if (pageNum > 1) {
+            pageNum--;
+            renderPage(pageNum);
+          }
+          resetTimer();
+          break;
         case 'j':
           if (pageNum > 1) {
             pageNum--;
             renderPage(pageNum);
           }
           break;
-
         case 'arrowup':
           totalSeconds++;
           renderTime();
